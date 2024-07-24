@@ -1,8 +1,7 @@
 package org.example.Login.dto;
 
 import lombok.*;
-import org.example.Login.constant.RoleType;
-import org.springframework.data.querydsl.QPageRequest;
+
 
 @Data
 @AllArgsConstructor

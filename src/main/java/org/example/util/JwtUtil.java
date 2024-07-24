@@ -3,6 +3,7 @@ package org.example.util;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.Login.dto.CustomUserInfoDto;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +17,7 @@ import java.util.Date;
  * [JWT 관련 메서드를 제공하는 클래스]
  */
 @Slf4j
+@Getter
 @Component
 public class JwtUtil {
     private final Key key;
@@ -87,21 +89,22 @@ public class JwtUtil {
      * @param token
      * @return IsValidate
      */
-    public boolean validateToken(String token) {
-
+    public void validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-            return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
             log.info("Invalid JWT Token", e);
+            throw new SecurityException();
         } catch (ExpiredJwtException e) {
             log.info("Expired JWT Token", e);
+            throw new ExpiredJwtException(e.getHeader(), e.getClaims(),"Expired JWT Token");
         } catch (UnsupportedJwtException e) {
             log.info("Unsupported JWT Token", e);
+            throw new UnsupportedJwtException("유효하지 않은 토큰입니다.");
         } catch (IllegalArgumentException e) {
             log.info("JWT claims string is empty.", e);
+            throw new IllegalArgumentException();
         }
-        return false;
     }
 
 

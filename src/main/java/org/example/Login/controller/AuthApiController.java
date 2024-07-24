@@ -30,15 +30,18 @@ public class AuthApiController {
                 .build();
 
         String accessToken = jwtUtil.createAccessToken(info);
+        System.out.println(accessToken);
 
-        return ResponseEntity.status(HttpStatus.OK).body(accessToken);
+        ResponseEntity res = ResponseEntity.status(HttpStatus.OK).body(accessToken);
+        System.out.println(res);
+        return res;
     }
 
     @PostMapping("test")
     public ResponseEntity<String> testApi(
             @Valid @RequestBody LoginRequestDto request
     ) {
-        System.out.println("Login >");
+        System.out.println("Login  test>");
         System.out.println(request);
 
         return ResponseEntity.status(HttpStatus.OK).body("DONE");
