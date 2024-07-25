@@ -1,14 +1,23 @@
 package org.example.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.example.Login.dto.CustomUserInfoDto;
+import org.example.exception.Jwt.JwtTokenErrorCode;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.filter.CharacterEncodingFilter;
 
+import java.io.IOException;
 import java.security.Key;
 import java.time.ZonedDateTime;
 import java.util.Date;
@@ -34,6 +43,7 @@ public class JwtUtil {
 
     /**
      * Access Token 생성
+     *
      * @param member
      * @return Access Token String
      */
@@ -44,6 +54,7 @@ public class JwtUtil {
 
     /**
      * JWT 생성
+     *
      * @param member
      * @param expireTime
      * @return JWT String
@@ -67,6 +78,7 @@ public class JwtUtil {
 
     /**
      * Token에서 User ID 추출
+     *
      * @param token
      * @return User ID
      */
@@ -76,6 +88,7 @@ public class JwtUtil {
 
     /**
      * Token에서 Email 추출
+     *
      * @param token
      * @return Email
      */
@@ -86,30 +99,42 @@ public class JwtUtil {
 
     /**
      * JWT 검증
+     *
      * @param token
      * @return IsValidate
      */
-    public void validateToken(String token) {
+    public boolean validateToken(String token, HttpServletResponse response) {
+
         try {
+            if (token.isEmpty()) {
+                throw new IllegalArgumentException();
+            }
+
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            return true;
         } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
-            log.info("Invalid JWT Token", e);
-            throw new SecurityException();
+            log.info("JwtUtil | Invalid JWT Token", e);
+            setErrorResponse(response, JwtTokenErrorCode.INVALID_JWT_TOKEN);
         } catch (ExpiredJwtException e) {
-            log.info("Expired JWT Token", e);
-            throw new ExpiredJwtException(e.getHeader(), e.getClaims(),"Expired JWT Token");
+            log.info("JwtUtil | Expired JWT Token", e);
+            setErrorResponse(response, JwtTokenErrorCode.EXPIRED_JWT_TOKEN);
         } catch (UnsupportedJwtException e) {
-            log.info("Unsupported JWT Token", e);
-            throw new UnsupportedJwtException("유효하지 않은 토큰입니다.");
+            log.info("JwtUtil | Unsupported JWT Token", e);
+            setErrorResponse(response, JwtTokenErrorCode.UNSUPPORTED_JWT_TOKEN);
         } catch (IllegalArgumentException e) {
-            log.info("JWT claims string is empty.", e);
-            throw new IllegalArgumentException();
+            log.info("JwtUtil | JWT claims string is empty.", e);
+            setErrorResponse(response, JwtTokenErrorCode.EMPTY_JWT_TOKEN);
         }
+        return false;
+    }
+    private void test(String token) throws IllegalArgumentException {
+
     }
 
 
     /**
      * JWT Claims 추출
+     *
      * @param accessToken
      * @return JWT Claims
      */
@@ -120,6 +145,28 @@ public class JwtUtil {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
+    }
+
+    private void setErrorResponse(
+            HttpServletResponse response,
+            JwtTokenErrorCode errorCode
+    ) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        response.setStatus(errorCode.getHttpStatus().value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        ErrorResponse errorResponse = new ErrorResponse(errorCode.getCode(), errorCode.getMessage());
+        try {
+            response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Data
+    public static class ErrorResponse {
+        private final String code;
+        private final String message;
     }
 
 }

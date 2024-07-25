@@ -25,4 +25,5 @@ server:
 
 jwt:
   expiration_time: 86400000 #1일
+  #expiration_time : 10
   secret: VlwEyVBsYt9V7zq57TejMnVUyzblYcfPQye08f7MGVA9XkHa

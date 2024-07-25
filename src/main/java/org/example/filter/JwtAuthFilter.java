@@ -1,5 +1,6 @@
 package org.example.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
@@ -8,14 +9,20 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.exception.Jwt.JwtTokenErrorCode;
 import org.example.util.JwtUtil;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter { // OncePerRequestFilter -> 한 번 실행 보장
@@ -45,21 +52,26 @@ public class JwtAuthFilter extends OncePerRequestFilter { // OncePerRequestFilte
         } else {
             //JWT가 헤더에 있는 경우
             System.out.println("JWT 있쬬");
-            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-                String token = authorizationHeader.substring(7);
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer")) {
+                System.out.println("Bearer 있쬬");
+                String token = authorizationHeader.substring(6);
+                token = token.trim();
+
                 //JWT 유효성 검증
-                jwtUtil.validateToken(token);
+                if (jwtUtil.validateToken(token, response)) {
+                    System.out.println("validateToken 했쬬");
+                    Long userId = jwtUtil.getUserId(token);
+                    String email = jwtUtil.getEmail(token);
 
-                Long userId = jwtUtil.getUserId(token);
-                String email = jwtUtil.getEmail(token);
+                    System.out.println("!!!!!!!!!!!!!!!!!!!!");
+                    System.out.println(userId);
+                    System.out.println(email);
+                    System.out.println("!!!!!!!!!!!!!!!!!!!!");
 
-                System.out.println("!!!!!!!!!!!!!!!!!!!!");
-                System.out.println(userId);
-                System.out.println(email);
-                System.out.println("!!!!!!!!!!!!!!!!!!!!");
-
-                filterChain.doFilter(request, response); // 다음 필터로 넘기기
-                System.out.println("TOKEN IS WRONG");
+                    filterChain.doFilter(request, response); // 다음 필터로 넘기기
+                } else {
+                    System.out.println("TOKEN IS WRONG");
+                }
             }
         }
     }
@@ -76,6 +88,5 @@ public class JwtAuthFilter extends OncePerRequestFilter { // OncePerRequestFilte
         }
         return result;
     }
-
 
 }
